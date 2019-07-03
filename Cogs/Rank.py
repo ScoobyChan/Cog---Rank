@@ -2,6 +2,7 @@ import discord
 import random
 import asyncio
 from discord.ext import commands
+from discord.utils import get
 
 import sqlite3
 conn = sqlite3.connect('importantFiles/botDatabase.db')
@@ -19,6 +20,35 @@ class Rank(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 
+
+	@commands.command()
+	async def test(self, ctx):
+		UserID = ctx.author.id
+		member = self.bot.get_user(UserID)
+		print(member)
+
+		# try:
+		# chRank = 'Member3'
+		# server = ctx.guild.roles
+
+		# role = discord.utils.get(server, name=chRank)
+		# await self.bot.add_roles(role)
+
+		roleVer = 'Member'
+		user = ctx.message.author #user
+		role = roleVer # change the name from roleVer to role
+
+		await ctx.send("""Attempting to Verify {}""".format(user))
+
+		try:
+			await user.add_roles(discord.utils.get(member.guild.roles, name=role)) #add the role
+		except Exception as e:
+			await ctx.send('There was an error running this command ' + str(e)) #if error
+		else:
+			await ctx.send("""Verified: {}""".format(user)) # no errors, say verified
+
+
+
 	@commands.Cog.listener()
 	async def on_message(self, message):
 		numOne = random.randint(0, 50)
@@ -31,7 +61,7 @@ class Rank(commands.Cog):
 		if numTwo == numOne:
 			print('true')
 			try:
-				c.execute("SELECT * FROM User WHERE ServerID={} AND UserID={}".format(guild, author))
+				c.execute("SELECT * FROM Members WHERE ServerID={} AND UserID={}".format(guild, author))
 				user = c.fetchall()
 			except:
 				print('User err')
@@ -41,7 +71,7 @@ class Rank(commands.Cog):
 			xp = curXP + serverInc
 			
 			try:
-				c.execute('UPDATE User SET xp={}, role="{}" WHERE ServerID={} AND UserID={}'.format(xp, chRank, guild, author))
+				c.execute('UPDATE Members SET xpreserve={}, role="{}" WHERE ServerID={} AND UserID={}'.format(xp, chRank, guild, author))
 				conn.commit()
 			except:
 				print('User err')
@@ -64,7 +94,7 @@ class Rank(commands.Cog):
 
 		c.execute("UPDATE XP SET enableXP='{}' WHERE serverID={}".format(enable, ctx.guild.id))
 		conn.commit()
-		await ctx.send(f"XP enable set to: **{enable}d**")
+		await ctx.send(f"XP enable set to: **{enable}d**")	# Works
 
 	@commands.command()
 	async def xpgain(self, ctx, xpgain:int):
@@ -73,7 +103,7 @@ class Rank(commands.Cog):
 			conn.commit()
 			await ctx.send(f"XP gain set to: {str(xpgain)}")
 		except:
-			print('XP gain Error')
+			print('XP gain Error')	# Works
 
 	@commands.command()
 	async def xpCap(self, ctx, xpCap:int):
@@ -87,7 +117,7 @@ class Rank(commands.Cog):
 			conn.commit()
 			await ctx.send(f"XP cap set to: {str(xpCap)}")
 		except:
-			print('xpCap error')
+			print('xpCap error')	# Works
 
 	@commands.command()
 	async def xpregen(self, ctx, mem:str):
@@ -99,7 +129,7 @@ class Rank(commands.Cog):
 			conn.commit()
 			await ctx.send(f"<@{member}> has been given 100,000 XP")
 		except:
-			return await ctx.send(f'No user with ID: {str(member)}')
+			return await ctx.send(f'No user with ID: {str(member)}')	# Works
 
 	@commands.command()
 	async def xp(self, ctx, mem:str, xp:int):
@@ -146,12 +176,11 @@ class Rank(commands.Cog):
 			c.execute("UPDATE Members SET xp={} WHERE ServerID={} AND UserID={}".format(int(TonewXP), serverID, member))
 			c.execute("UPDATE Members SET xpreserve={} WHERE ServerID={} AND UserID={}".format(FromNewXP, serverID, authorID))
 			conn.commit()
-			await ctx.send(f'<@{authorID}> has given XP')
+			await ctx.send(f'<@{authorID}> has given **{xp}** XP')
 		except:
 			print('err')
 			await ctx.send('Error giving XP')
-			return
-
+			return	# Works
 
 # ####################  semi tested  ###########################
 	@commands.command()
@@ -182,10 +211,10 @@ class Rank(commands.Cog):
 			await ctx.send('I have added the user to my database')
 		except:
 			await ctx.send('User Alreadyin server')
-			return
+			return	# Works
 
 	@commands.command()
-	async def feed(self, ctx, ammount: int): # Change to use feed database not xp
+	async def feed(self, ctx, ammount: int):	# Works
 		try:
 			c.execute('SELECT * FROM Members WHERE ServerID={} AND UserID={}'.format(ctx.guild.id, ctx.author.id))
 			befUser = c.fetchall()
@@ -245,222 +274,331 @@ class Rank(commands.Cog):
 
 		await ctx.send(f'hmmm that was tastey, thanks <@{ctx.author.id}> for feeding me **{str(ammount)}**')
 
-# 	@commands.command()
-# 	async def promote(self, ctx, __user: str, _rank: str):
-# 		_user = str(__user).strip('<>@')
-# 		user = int(_user)
-# 		server = ctx.guild.id
+	def selUser(self, server, user):
+		try:
+			c.execute("SELECT * FROM Members WHERE ServerID={} AND UserID={}".format(server, user))
+			user = c.fetchall()
+			return user
+		except:
+			unknow = 'Unknown user'
+			print('User err')
+			return unknow
 
-# 		try:
-# 			c.execute("SELECT * FROM User WHERE ServerID={} AND UserID={}".format(server, user))
-# 			_user = c.fetchall()
-# 		except:
-# 			print('User err')
-# 			return
+	def upUser(self, xp, chRank, server, user):
+		try:
+			c.execute('UPDATE Members SET xp={}, role="{}" WHERE ServerID={} AND UserID={}'.format(xp, chRank, server, user))
+			conn.commit()
+		except:
+			unknow = 'Unknown user'
+			print('Update User err')
+			return unknow
 
-# 		if str(_user) == '[]':
-# 			await ctx.send('User not in database')
-# 			return
+	def selRank(self, server, Rank=None):
+		try:
+			if Rank != None:
+				c.execute("SELECT * FROM Rank WHERE ServerID={} AND rankName='{}'".format(server, Rank))
+			else:
+				c.execute("SELECT * FROM Rank WHERE ServerID={}".format(server))
 
-# 		roleUser = _user[0][5]
+			rank = c.fetchall()
+			return rank
+		except:
+			print('Rank Error')
+			unknow = 'Unknown rank'
+			return unknow
+
+	# @commands.command()
+	# async def promote(self, ctx, _user=None, _rank=None):
+		# if _user == None:
+		# 	await ctx.send(f'<@{ctx.author.id}> Please ether in either an User ID or @them')
+		# 	return
+
+		# ServerID = ctx.guild.id
+		# try:
+		# 	UserID = int(str(_user).strip('<>@'))
+		# except:
+		# 	await ctx.send('Invalid input')
+		# 	return
+
+		# Seluser = self.selUser(ServerID, UserID)
+		# # Upuser = self.upUser(xp, rank, ServerID, UserID)
+		# try:
+		# 	print('Testing: '+str(Seluser[0]))
+		# except:
+		# 	await ctx.send(Seluser)
+		# 	return
+
+		# if _rank != None:
+		# 	if Seluser[0][5] == _rank:
+		# 		await ctx.send(f'User is Already **{_rank}**')
+		# 		# return # Un do once finished ##########################################################
+
+		# 	Selrank = self.selRank(ServerID, _rank)
+		# 	try:
+		# 		print('Testing: '+str(Selrank[0]))
+		# 	except:
+		# 		await ctx.send(Selrank)
+		# 		return
+
+		# 	xp = Selrank[0][3]
+		# 	chRank = Selrank[0][2]
+		# else:
+		# 	Selrank = self.selRank(ServerID)
+		# 	try:
+		# 		print('Testing: '+str(Selrank[0]))
+		# 	except:
+		# 		await ctx.send(Selrank)
+		# 		return
+
+		# 	top = False
+
+		# 	for servRank in Selrank:
+		# 		if servRank[3] > Seluser[0][4]:
+		# 			print(servRank[2])
+		# 			top = True
+
+		# 	if not top:
+		# 		ctx.send(f'<@{UserID}> at the top rank like a Cool Guy 😎')
+
+		# 	xp = servRank[3]
+		# 	chRank = servRank[2]
+
+		# member = self.bot.get_user(UserID)
+		# print(member.name)
+
+		# # try:
+		# chRank = 'Member3'
+		# server = ctx.guild.roles
+
+		# role = discord.utils.get(server, name=chRank)
+		# await self.bot.add_roles(member, role)
 		
-# 		if roleUser == _rank:
-# 			await ctx.send("User Already this role")
-# 			return
-
-		
-# 		if str(_rank) != 'False':
-# 			try:
-# 				c.execute("SELECT * FROM Rank WHERE ServerID={} AND rankName='{}'".format(server, _rank))
-# 				_Rank = c.fetchall()
-# 			except:
-# 				print('Rank err')
-# 				return
-
-# 			if str(_Rank) == '[]':
-# 				await ctx.send('Role not in database')
-# 				return
-
-# 			user = user[0][2]
-# 			xp = _Rank[0][3]
-
-# 		else:
-# 			_rank = _user[0][5]
-# 			try:
-# 				c.execute("SELECT * FROM Rank WHERE ServerID={} AND rankName='{}'".format(server, _rank))
-# 				_Rank = c.fetchall()
-# 			except:
-# 				print('Rank err')
-# 				return
-# 			_Rank = _Rank[0][3]
-
-# 			try:
-# 				c.execute("SELECT * FROM Rank WHERE ServerID={}".format(server))
-# 				_Ranks = c.fetchall()
-# 			except:
-# 				print('Rank err')
-# 				return
-
-# 			chRank = ''
-
-# 			for Ranks in _Ranks:
-# 				if Ranks[3] > _Rank:
-# 					chRank = Ranks[2]
-# 					xp = Ranks[3]
-# 					break
-				
-# 				if Ranks[3] >= 10000:
-# 					xp = Ranks[3]
-# 					break
-
-# 			print(xp)
-# 			print(chRank)
-
-# 		if chRank != '':
-# 			c.execute('UPDATE User SET xp={}, role="{}" WHERE ServerID={} AND UserID={}'.format(xp, chRank, server, user))
-# 			conn.commit()
-
-# 		try:
-# 			c.execute("SELECT * FROM User WHERE ServerID={} AND UserID={}".format(server, user))
-# 			user = c.fetchall()
-# 		except:
-# 			print('User err')
-# 			return
-
-# 		try:
-# 			role = discord.utils.get(member, name=userRole)
-# 			await bot.add_roles(user, role)
-# 		except:
-# 			return	
-
-# 		if chRank == '':
-# 			msg = f'<@{user[0][2]}> at the top rank like a Cool Guy 😎'
-# 		else:
-# 			msg = f'<@{user[0][2]}> has been Promoted to **{_rank}**'
-
+		# await self.bot.remove_roles(user, role)
 		
 
-# 		embed=discord.Embed(color=0xd54ac7)
-# 		embed.add_field(name="Promotion Time", value=msg, inline=False)
-# 		await ctx.send(embed=embed)
-
-# 	@commands.command()
-# 	async def demote(self, ctx, __user: str, _rank: str):
-# 		_user_ = str(__user).strip('<>@')
-# 		user = int(_user_)
-# 		server = ctx.guild.id
-# 		chRank = ''
+		# except:
+		# 	print('Role Error')
+		# 	return	
 		
-# 		try:
-# 			c.execute("SELECT * FROM User WHERE ServerID={} AND UserID={}".format(server, user))
-# 			_user = c.fetchall()
-# 		except:
-# 			print('User err')
-# 			return
+		# msg = f'<{member.name}> has been Promoted to **{_rank}**'
 
-# 		if str(_user) == '[]':
-# 			await ctx.send('User not in database')
-# 			return
+		# embed=discord.Embed(color=0xd54ac7)
+		# embed.add_field(name="Promotion Time", value=msg, inline=False)
+		# await ctx.send(embed=embed)
 
-# 		roleUser = _user[0][5]
-		
-# 		if roleUser == _rank:
-# 			await ctx.send("User Already this role")
-# 			return
+#
+		# try:
+		# 	c.execute("SELECT * FROM Members WHERE ServerID={} AND UserID={}".format(server, user))
+		# 	_user = c.fetchall()
 
-# 		try:
-# 			c.execute('SELECT * FROM Rank WHERE ServerID={}'.format(ctx.guild.id))
-# 			demo = c.fetchall()
-# 			rank = demo[0][2]
-# 		except:
-# 			print('cant access db')
-		
-# 		print(_user[0][5])
-# 		print(rank)
+		# 	if str(_user) == '[]':
+		# 		await ctx.send('User not in database')
+		# 		return
 
-# 		if _user[0][5] == rank:
-# 			msg = f'<@{_user[0][2]}> at the Bottom rank 😎'
-
-# 			embed=discord.Embed(color=0xd54ac7)
-# 			embed.add_field(name="Demotion Time", value=msg, inline=False)
-# 			await ctx.send(embed=embed)
-# 			return
-
-
-# 		if str(_rank) != 'False':
-# 			try:
-# 				c.execute("SELECT * FROM Rank WHERE ServerID={} AND rankName='{}'".format(server, _rank))
-# 				_Rank = c.fetchall()
-# 			except:
-# 				print('Rank err')
-# 				return
-
-# 			if str(_Rank) == '[]':
-# 				await ctx.send('Role not in database')
-# 				return
-
-# 			xp = _Rank[0][3]
-
-# 		else:
-# 			_rank = _user[0][5]
+		# 	roleUser = _user[0][5]
 			
-# 			try:
-# 				c.execute("SELECT * FROM Rank WHERE ServerID={}".format(server))
-# 				_Rank = c.fetchall()
-# 			except:
-# 				print('Rank err')
-# 				return
+		# 	if roleUser == _rank:
+		# 		await ctx.send("User Already this role")
+		# 		return
+
+		# except:
+		# 	print('User err')
+		# 	return
+
+		
+		# if str(_rank) != 'False':
+		# 	try:
+		# 		c.execute("SELECT * FROM Rank WHERE ServerID={} AND rankName='{}'".format(server, _rank))
+		# 		_Rank = c.fetchall()
+
+		# 		if str(_Rank) == '[]':
+		# 			await ctx.send('Role not in database')
+		# 			return
+
+		# 		user = user[0][2]
+		# 		xp = _Rank[0][3]
+		# 	except:
+		# 		print('Rank err')
+		# 		return
+
 			
-# 			chRank = ''
-# 			for _rank_ in _Rank:
-# 				if str(_rank_[2]) == str(_rank):
-# 					break
+		# else:
+		# 	_rank = _user[0][5]
+		# 	try:
+		# 		c.execute("SELECT * FROM Rank WHERE ServerID={} AND rankName='{}'".format(server, _rank))
+		# 		_Rank = c.fetchall()
+		# 		_Rank = _Rank[0][3]
+		# 	except:
+		# 		print('Rank err')
+		# 		return
+			
 
-# 				chRank = _rank_
+		# 	try:
+		# 		c.execute("SELECT * FROM Rank WHERE ServerID={}".format(server))
+		# 		_Ranks = c.fetchall()
+		# 		chRank = ''
+
+		# 		for Ranks in _Ranks:
+		# 			if Ranks[3] > _Rank:
+		# 				chRank = Ranks[2]
+		# 				xp = Ranks[3]
+		# 				break
+					
+		# 			if Ranks[3] >= 10000:
+		# 				xp = Ranks[3]
+		# 				break
+
+		# 		print(xp)
+		# 		print(chRank)
+		# 	except:
+		# 		print('Rank err')
+		# 		return
+
+		# if chRank != '':
+		# 	c.execute('UPDATE Members SET xp={}, role="{}" WHERE ServerID={} AND UserID={}'.format(xp, chRank, server, user))
+		# 	conn.commit()
+
+		# try:
+		# 	c.execute("SELECT * FROM Members WHERE ServerID={} AND UserID={}".format(server, user))
+		# 	user = c.fetchall()
+		# except:
+		# 	print('User err')
+		# 	return
+
+		# try:
+		# 	role = discord.utils.get(member, name=chRank)
+		# 	await self.bot.add_roles(user, role)
+		# except:
+		# 	print('Role Error')
+		# 	return	
+
+
+		# if chRank == '':
+		# 	msg = f'<@{user[0][2]}> at the top rank like a Cool Guy 😎'
+		# else:
+		# 	msg = f'<@{user[0][2]}> has been Promoted to **{_rank}**'
+
+		# embed=discord.Embed(color=0xd54ac7)
+		# embed.add_field(name="Promotion Time", value=msg, inline=False)
+		# await ctx.send(embed=embed)
+
+	# @commands.command()
+	# async def demote(self, ctx, __user: str, _rank: str):
+		# _user_ = str(__user).strip('<>@')
+		# user = int(_user_)
+		# server = ctx.guild.id
+		# chRank = ''
 		
-# 			xp = chRank[3]
-# 			chRank = chRank[2]
+		# try:
+		# 	c.execute("SELECT * FROM Members WHERE ServerID={} AND UserID={}".format(server, user))
+		# 	_user = c.fetchall()
+		# except:
+		# 	print('User err')
+		# 	return
+
+		# if str(_user) == '[]':
+		# 	await ctx.send('User not in database')
+		# 	return
+
+		# roleUser = _user[0][5]
+		
+		# if roleUser == _rank:
+		# 	await ctx.send("User Already this role")
+		# 	return
+
+		# try:
+		# 	c.execute('SELECT * FROM Rank WHERE ServerID={}'.format(ctx.guild.id))
+		# 	demo = c.fetchall()
+		# 	rank = demo[0][2]
+		# except:
+		# 	print('cant access db')
+		
+		# print(_user[0][5])
+		# print(rank)
+
+		# if _user[0][5] == rank:
+		# 	msg = f'<@{_user[0][2]}> at the Bottom rank 😎'
+
+		# 	embed=discord.Embed(color=0xd54ac7)
+		# 	embed.add_field(name="Demotion Time", value=msg, inline=False)
+		# 	await ctx.send(embed=embed)
+		# 	return
+
+
+		# if str(_rank) != 'False':
+		# 	try:
+		# 		c.execute("SELECT * FROM Rank WHERE ServerID={} AND rankName='{}'".format(server, _rank))
+		# 		_Rank = c.fetchall()
+		# 	except:
+		# 		print('Rank err')
+		# 		return
+
+		# 	if str(_Rank) == '[]':
+		# 		await ctx.send('Role not in database')
+		# 		return
+
+		# 	xp = _Rank[0][3]
+
+		# else:
+		# 	_rank = _user[0][5]
+			
+		# 	try:
+		# 		c.execute("SELECT * FROM Rank WHERE ServerID={}".format(server))
+		# 		_Rank = c.fetchall()
+		# 	except:
+		# 		print('Rank err')
+		# 		return
+			
+		# 	chRank = ''
+		# 	for _rank_ in _Rank:
+		# 		if str(_rank_[2]) == str(_rank):
+		# 			break
+
+		# 		chRank = _rank_
+		
+		# 	xp = chRank[3]
+		# 	chRank = chRank[2]
 		
 		
-# 		c.execute('UPDATE User SET xp={}, role="{}" WHERE ServerID={} AND UserID={}'.format(xp, chRank, server, user))
-# 		conn.commit()
+		# c.execute('UPDATE Members SET xp={}, role="{}" WHERE ServerID={} AND UserID={}'.format(xp, chRank, server, user))
+		# conn.commit()
 
-# 		try:
-# 			c.execute("SELECT * FROM User WHERE ServerID={} AND UserID={}".format(server, user))
-# 			fUser = c.fetchall()
-# 		except:
-# 			print('User err')
-# 			return
+		# try:
+		# 	c.execute("SELECT * FROM Members WHERE ServerID={} AND UserID={}".format(server, user))
+		# 	fUser = c.fetchall()
+		# except:
+		# 	print('User err')
+			# return
 
-# 		# try:
-# 		# 	role = discord.utils.get(member, name=userRole)
-# 		# 	await bot.add_roles(user, role)
-# 		# except:
-# 		# 	return	
+		# try:
+		# 	role = discord.utils.get(member, name=userRole)
+		# 	await bot.add_roles(user, role)
+		# except:
+		# 	return	
 
 		
-# 		msg = f'<@{fUser[0][2]}> has been Demoted to **{chRank}**'
+		# msg = f'<@{fUser[0][2]}> has been Demoted to **{chRank}**'
 
-# 		embed=discord.Embed(color=0xd54ac7)
-# 		embed.add_field(name="Demotion Time", value=msg, inline=False)
-# 		await ctx.send(embed=embed)
+		# embed=discord.Embed(color=0xd54ac7)
+		# embed.add_field(name="Demotion Time", value=msg, inline=False)
+		# await ctx.send(embed=embed)
 
-# 	@commands.command()
-# 	async def ranks(self, ctx):
-# 		user = ctx.author.name
-# 		c.execute('SELECT * FROM Rank WHERE ServerID={}'.format(ctx.guild.id))
-# 		demo = c.fetchall()
-# 		msg = ''
+	@commands.command()
+	async def ranks(self, ctx):
+		user = ctx.author.name
+		c.execute('SELECT * FROM Rank WHERE ServerID={}'.format(ctx.guild.id))
+		demo = c.fetchall()
+		msg = ''
 
-# 		for servRank in demo:
-# 			RankName = servRank[2]
-# 			RankPoint = servRank[3]
-# 			msg += ' - **' + RankName + '** with XP count required of: **' + str(RankPoint) + '**\n'
+		for servRank in demo:
+			RankName = servRank[2]
+			RankPoint = servRank[3]
+			msg += ' - **' + RankName + '** with XP count required of: **' + str(RankPoint) + '**\n'
 
-# 		embed=discord.Embed(color=0xd54ac7)
-# 		embed.add_field(name="Servers Ranks", value=msg, inline=False)
-# 		embed.set_footer(text=f"requested by: {user}")
-# 		await ctx.send(embed=embed)
+		embed=discord.Embed(color=0xd54ac7)
+		embed.add_field(name="Servers Ranks", value=msg, inline=False)
+		embed.set_footer(text=f"requested by: {user}")
+		await ctx.send(embed=embed)	# Works
 
 	@commands.command()
 	async def aRank(self, ctx, rank: int, *, name: str): # add colors
@@ -481,7 +619,7 @@ class Rank(commands.Cog):
 			conn.commit()
 
 			await ctx.guild.create_role(name=name, colour=discord.Colour(0xda3c3c)) # make random color
-			await ctx.send(f'Added Rank **{name}**')
+			await ctx.send(f'Added Rank **{name}**')	# Works		# Fix the no input
 
 	@commands.command()
 	async def rRank(self, ctx, name: str):
@@ -500,7 +638,7 @@ class Rank(commands.Cog):
 			conn.commit()
 			await ctx.send(f'Removed the Role: {name}')
 		else:
-			await ctx.send(f'No roles under the name: **{name}**')
+			await ctx.send(f'No roles under the name: **{name}**') # ish
 
 
 def setup(bot):

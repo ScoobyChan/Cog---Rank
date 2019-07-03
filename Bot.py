@@ -94,6 +94,7 @@ async def on_member_join(member):
 		userRole = demo[0][7]
 		role = discord.utils.get(member, name=userRole)
 		await bot.add_roles(author, role)
+		
 	# Sends to Channel if there
 	welcome = demo[0][6]
 	if not welcome == "None":
@@ -110,8 +111,6 @@ async def on_member_leave(member):
 
 	welcome = demo[0][6]
 	if not welcome == "None":
-		role = discord.utils.get(member, name=userRole)
-		await bot.add_roles(author, role)
 		# Sends to Channel if there
 		channel = bot.get_channel(int(welcome))
 		await channel.send(f"GoodBye {member.name}")
